@@ -21,34 +21,36 @@ function formatDates(data) {
   return dates
 }
 
-function getDerivativeData(data) {
-  delta = []
-  for (let i = 0; i < data.length; i++) {
-    let idx = i == 0 ? 1 : i
-
-    delta.push(data[idx]['death'] - data[idx - 1]['death'])
+function getRatePerDay(data, attr) {
+  rates = []
+  let i = 0
+  while (true) {
+    if (data[i + 1] === undefined || data[i + 1][attr] === undefined) {
+      break
+    }
+    let rate = data[i][attr] - data[i + 1][attr]
+    day = { 'date': data[i]['date'] }
+    day[attr] = rate
+    rates.push(day)
+    i++
   }
-  return delta
+  return rates
 }
 
 function createChart(data, state) {
   var statedata = getStateData(data, state)
+  var deaths = getRatePerDay(statedata, 'death').reverse()
+  debugger
   var ctx = document.getElementById('covid').getContext('2d')
-  var chart = new Chart(ctx, {
+
+  new Chart(ctx, {
     type: 'line',
     data: {
-      labels: formatDates(statedata),
+      labels: formatDates(deaths),
       datasets: [
         {
-          label: 'Covid Deaths (total)',
-          data: statedata.map(day => day['death']),
-          borderColor: 'rgba(72, 192, 192, 1)',
-          backgroundColor: 'rgba(72, 192, 192, 0.2)',
-          borderWidth: 1
-        },
-        {
           label: 'Covid deaths/day',
-          data: getDerivativeData(statedata),
+          data: deaths.map(rate => rate['death']),
           borderColor: 'rgba(192, 10, 192, 1)',
           backgroundColor: 'rgba(192, 10, 192, 0.2)',
           borderWidth: 1
@@ -64,7 +66,7 @@ function fetchData(state) {
       return response.json();
     })
     .then((data) => {
-      createChart(data.reverse(), state.toUpperCase());
+      createChart(data, state.toUpperCase());
     });
 }
 
